@@ -30,7 +30,7 @@ class CatBoostTransformer(BaseEstimator, TransformerMixin):
 
 class HillstromTransformer(BaseEstimator, TransformerMixin):
     def __init__(self,
-                 cat_columns=['history_segment', 'zip_code', 'channel']
+                 cat_columns=["history_segment", "zip_code", "channel"]
                  ):
         self.cat_columns = cat_columns
         self.encoder = OneHotEncoder(sparse_output=False)
@@ -48,6 +48,27 @@ class HillstromTransformer(BaseEstimator, TransformerMixin):
                 self.cat_columns))
         return pd.concat(
             [data_transformed, data.drop(self.cat_columns, axis=1)], axis=1)
+
+    def fit_transform(self, data, target=None):
+        return self.fit(data, target).transform(data)
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
+class AddControl(BaseEstimator, TransformerMixin):
+    def __init__(self,
+                 control,
+                 control_name="control"
+                 ):
+        self.control = control
+        self.control_name = control_name
+
+    def fit(self, data, target=None):
+        return self
+
+    def transform(self, data):
+        data[f"{control_name}"] = control
+        return data
 
     def fit_transform(self, data, target=None):
         return self.fit(data, target).transform(data)
