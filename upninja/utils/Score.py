@@ -79,27 +79,47 @@ def scorePipelines(
         target_train,
         data_test,
         target_test,
-        treatment_train,
-        treatment_test):
+        treatment_train_in,
+        treatment_test_in):
     results = []
     for pipeline in pipelines_unfited:
         scores = {}
         scores["model_name"] = pipeline
+        steps = pipeline.split("-")
+        if "treeCausal" in steps:
+            treatment_train = treatment_train_in.copy()
+            treatment_train = treatment_train.map({0: 'no-control', 1: 'control'})
+            treatment_train = treatment_train
+            treatment_test = treatment_test_in.copy()
+            treatment_test = treatment_test.map({0: 'no-control', 1: 'control'})
+            treatment_test = treatment_test
+        else:
+            treatment_train = treatment_train_in.copy()
+            treatment_test = treatment_test_in.copy()
         start_fit_time = time.time()
-        pipelines_unfited[pipeline] = pipelines_unfited[pipeline]\
-            .fit(data_train,
-                 target_train,
-                 treatment_train)
+        if "treeCausal" in steps:
+            pipelines_unfited[pipeline] = pipelines_unfited[pipeline]\
+                .fit(data_train,
+                     treatment_train,
+                     target_train)
+        else:
+            pipelines_unfited[pipeline] = pipelines_unfited[pipeline]\
+                .fit(data_train,
+                     target_train,
+                     treatment_train)
         scores["fit_time"] = time.time() - start_fit_time
         start_score_time = time.time()
         score = pipelines_unfited[pipeline].predict(data_test)
         scores["score_time"] = time.time() - start_score_time
+        if "treeCausal" in steps:
+            treatment_test = treatment_test_in.copy()
+            score = score[:, 1] - score[:, 0]
         scores["weighted_average_uplift_test"] = weighted_average_uplift(
             target_test, score, treatment_test, bins=10)
         scores["auqc_test"] = qini_auc_score(
-            target_test, score, treatment_test)
+            target_test.values, score, treatment_test.values)
         scores["auuq_test"] = uplift_auc_score(
-            target_test, score, treatment_test)
+            target_test.values, score, treatment_test.values)
         results.append(scores)
     result = pd.DataFrame(results)
     result = pd.concat(
