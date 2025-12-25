@@ -48,7 +48,7 @@ class BasePipeline(BaseEstimator, TransformerMixin):
         transformed_data = self.transform(data)
         if hasattr(self.model, 'score'):
             transformed_data = transformed_data.values.copy()
-            return self.model.score(transformed_data, y)
+            return self.model.score(transformed_data, target)
         raise AttributeError(
             f"Last step does'n support 'score' method! Last step: {print(self.model)}")
 
