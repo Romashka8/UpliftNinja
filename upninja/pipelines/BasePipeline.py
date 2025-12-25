@@ -22,8 +22,6 @@ class BasePipeline(BaseEstimator, TransformerMixin):
                 transformed_data, target)
         if hasattr(self.model, 'fit'):
             self.model.fit(transformed_data, target, treatment)
-        else:
-            self.model.fit(transformed_data, target, treatment)
         return self
 
     def transform(self, data):
