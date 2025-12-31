@@ -1,6 +1,5 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-from . import Wrappers
 from .Selection import findBestParams, baseModelSelection
 from . import Spaces
 
