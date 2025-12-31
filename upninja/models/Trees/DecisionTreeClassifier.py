@@ -3,7 +3,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-from typing import List
+from typing import List, Union
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -180,7 +180,7 @@ class DecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         return best_split
 
     def calculate_leaf_value(self,
-                             y: list | np.array) -> int:
+                             y: Union[list, np.array]) -> int:
         """
         Вычисляет наиболее часто встречающееся значение в заданном списке значений y.
 
@@ -226,7 +226,7 @@ class DecisionTreeClassifier(BaseEstimator, ClassifierMixin):
 
     def fit(self,
             X: np.ndarray,
-            y: np.ndarray) -> DecisionTreeClassifier:
+            y: np.ndarray):
         """
         Строит и подгоняет дерево решений к заданным значениям X и y.
 
