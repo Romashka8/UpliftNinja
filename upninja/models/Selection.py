@@ -1,13 +1,10 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-import time
-
 import numpy as np
 import pandas as pd
 
 from hyperopt import fmin, tpe, STATUS_OK, Trials
 
-from sklearn.base import BaseEstimator, ClassifierMixin
 from sklearn.model_selection import cross_validate, cross_val_score
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
