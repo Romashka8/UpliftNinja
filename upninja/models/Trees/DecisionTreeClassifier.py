@@ -77,14 +77,10 @@ class DecisionTreeClassifier(BaseEstimator, ClassifierMixin):
         left_dataset = []
         right_dataset = []
 
-        for row in dataset:
-            if row[feature] <= threshold:
-                left_dataset.append(row)
-            else:
-                right_dataset.append(row)
+        mask = dataset[:, feature] <= threshold
 
-        left_dataset = np.array(left_dataset)
-        right_dataset = np.array(right_dataset)
+        left_dataset = dataset[mask]
+        right_dataset = dataset[~mask]
 
         return left_dataset, right_dataset
 
