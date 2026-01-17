@@ -5,7 +5,7 @@ import pandas as pd
 
 from hyperopt import fmin, tpe, STATUS_OK, Trials
 
-from sklearn.model_selection import cross_validate, cross_val_score
+from sklearn.model_selection import cross_val_score
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -48,35 +48,5 @@ def findBestParams(
         "best_params": best_params,
         "best_score": best_score,
         "trials": trials}
-
-# ----------------------------------------------------------------------------------------------------------------------------------------------------------
-
-
-def baseModelSelection(models, data, target):
-    result = []
-    scorring = ["accuracy", "roc_auc", "f1"]
-    for model_name in models:
-        scores = cross_validate(
-            models[model_name],
-            data,
-            target,
-            scoring=scorring)
-        for score in scores:
-            scores[score] = np.mean(scores[score])
-        scores["model_name"] = model_name
-        result.append(scores)
-    result = pd.DataFrame(result)
-    result = pd.concat(
-        [result["model_name"], result.drop(["model_name"], axis=1)], axis=1)
-    return result.sort_values(by=["fit_time",
-                                  "score_time",
-                                  "test_roc_auc",
-                                  "test_accuracy",
-                                  "test_f1"],
-                              ascending=[True,
-                                         True,
-                                         False,
-                                         False,
-                                         False])
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
