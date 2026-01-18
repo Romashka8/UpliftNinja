@@ -20,9 +20,35 @@ class UpliftTune:
         target: np.array,
         treatment: np.array,
         space: dict,
+        rnd_seed: int,
         max_evals: int = 5,
     ):
-        self.model = model_class(**space)
+        self.model_class = model_class
+        self.space = space
+        self.objective = self.get_objective_(
+            data=data, target=target, treatment=treatment
+        )
+        self.rnd_seed = rnd_seed
+        self.max_evals = max_evals
+        self.trials = Trials()
+
+    def tune(self):
+        best = fmin(
+            fh=self.objective,
+            algo=tpe.suggest,
+            max_evals=self.max_evals,
+            trials=self.trials,
+            rstate=np.random.default_rng(self.rnd_seed),
+        )
+
+        best_params = {k: v for k, v in best.items()}
+        best_score = -min(self.trials.losses())
+
+        return {
+            "best_params": best_params,
+            "best_score": best_score,
+            "trials": self.trials,
+        }
 
     def scoring_(
         self,
@@ -43,17 +69,17 @@ class UpliftTune:
         control_p = target[order][treatment[order] == 0][:control_n].mean()
         score = treatment_p - control_p
         return score
-    
-    # def get_objective_(self, 
-    #                    model: Any,
-    #                    data: np.array,
-    #                    target: np.array,
-    #                    treatment: np.array
-    #                 ):
-    #     predictions = model.predict(data)
-    #     scores = self.scoring_(
 
-    #     )
+    def get_objective_(self, data: np.array, target: np.array, treatment: np.array):
+        def uplift_objective(self):
+            model = self.model_class(**self.space)
+            predictions = model.predict(data)
+            scores = self.scoring_(predictions, treatment, target)
+            loss = -scores.mean()
+            return {"loss": loss, "status": STATUS_OK}
+
+        return uplift_objective
+
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
