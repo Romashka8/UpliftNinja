@@ -107,9 +107,9 @@ class UpliftTune:
         skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=self.rnd_seed)
 
         for train_idx, val_idx in skf.split(X, treatment):
-            X_train, X_val = X[train_idx], X[val_idx]
-            y_train, y_val = y[train_idx], y[val_idx]
-            treatment_train, treatment_val = treatment[train_idx], treatment[val_idx]
+            X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
+            y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+            treatment_train, treatment_val = treatment.iloc[train_idx], treatment.iloc[val_idx]
 
             try:
                 model.fit(X_train, y_train, treatment_train)
@@ -163,14 +163,14 @@ class UpliftTune:
 
         top_indices = order[:n_top]
 
-        treatment_mask = treatment[top_indices] == 1
-        control_mask = treatment[top_indices] == 0
+        treatment_mask = treatment.iloc[top_indices] == 1
+        control_mask = treatment.iloc[top_indices] == 0
 
         treatment_conv = (
-            target[top_indices][treatment_mask].mean() if treatment_mask.any() else 0
+            target.iloc[top_indices][treatment_mask].mean() if treatment_mask.any() else 0
         )
         control_conv = (
-            target[top_indices][control_mask].mean() if control_mask.any() else 0
+            target.iloc[top_indices][control_mask].mean() if control_mask.any() else 0
         )
 
         uplift = treatment_conv - control_conv
@@ -185,9 +185,9 @@ class UpliftTune:
         n_bins: int = 10,
     ) -> float:
         order = np.argsort(-predictions)
-        predictions_sorted = predictions[order]
-        treatment_sorted = treatment[order]
-        target_sorted = target[order]
+        predictions_sorted = predictions.iloc[order]
+        treatment_sorted = treatment.iloc[order]
+        target_sorted = target.iloc[order]
 
         n = len(predictions)
         bin_size = n // n_bins
