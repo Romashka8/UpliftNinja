@@ -84,9 +84,8 @@ ${Y^0, Y^1} \text{ Не зависят } W(X)$
   <br>
   $P^T(x) = P(Y=1 \mid X=x, P^C(x), W=1)$
 - Uplift:
-  $$
-  \widehat{\text{uplift}}(x) = P^T(x, P^C(x)) - P^C(x)
-  $$
+  <br>
+  $\widehat{\text{uplift}}(x) = P^T(x, P^C(x)) - P^C(x)$
 
 ---
 
