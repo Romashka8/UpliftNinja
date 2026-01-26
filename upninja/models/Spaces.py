@@ -13,15 +13,15 @@ dt_base_params = {
     "min_samples_split": 0.05,
     "min_samples_leaf": 0.05,
     "criterion": "gini",
-    "random_state": 0,
+    "n_jobs": -1
 }
 
 dt_hp_space = {
-    "max_depth": hp.uniformint("max_depth", 2, 20),
+    "max_depth": hp.uniformint("max_depth", 2, 50),
     "min_samples_split": hp.uniform("min_samples_split", 0.01, 0.2),
     "min_samples_leaf": hp.uniform("min_samples_leaf", 0.01, 0.2),
     "criterion": hp.choice("criterion", ["gini", "entropy"]),
-    "random_state": 0,
+    "n_jobs": -1
 }
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -33,16 +33,16 @@ rf_base_params = {
     "min_samples_split": 0.05,
     "min_samples_leaf": 0.05,
     "criterion": "gini",
-    "random_state": 0,
+    "n_jobs": -1
 }
 
 rf_hp_space = {
-    "n_estimators": hp.uniformint("n_estimators", 50, 200),
+    "n_estimators": hp.uniformint("n_estimators", 50, 500),
     "max_depth": hp.uniformint("max_depth", 2, 20),
     "min_samples_split": hp.uniform("min_samples_split", 0.01, 0.2),
     "min_samples_leaf": hp.uniform("min_samples_leaf", 0.01, 0.2),
     "criterion": hp.choice("criterion", ["gini", "entropy"]),
-    "random_state": 0,
+    "n_jobs": -1
 }
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -53,17 +53,17 @@ cb_base_params = {
     "depth": 6,
     "learning_rate": 0.1,
     "l2_leaf_reg": 3,
-    "random_seed": 0,
     "verbose": False,
+    "thread_count": -1
 }
 
 cb_hp_space = {
-    "iterations": hp.uniformint("iterations", 100, 1000),
+    "iterations": hp.uniformint("iterations", 100, 2500),
     "depth": hp.uniformint("depth", 2, 10),
     "learning_rate": hp.uniform("learning_rate", 0.01, 0.2),
     "l2_leaf_reg": hp.uniform("l2_leaf_reg", 1, 10),
-    "random_seed": 0,
     "verbose": False,
+    "thread_count": -1
 }
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
