@@ -3,7 +3,7 @@
 import numpy as np
 from sklearn.base import BaseEstimator, ClassifierMixin
 
-from typing import List, Union
+from typing import Optional
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
@@ -37,225 +37,204 @@ class Node:
 
 
 class DecisionTreeClassifier(BaseEstimator, ClassifierMixin):
-    def __init__(self, min_samples: int = 2, max_depth: int = 2):
+    def __init__(
+        self,
+        min_samples: int = 2,
+        max_depth: int = 2,
+        criterion: str = "entropy",
+        bins: Optional[int] = None
+    ):
         """
         Конструктор для класса DecisionTree.
 
         Параметры:
             min_samples (int): минимальное количество выборок, необходимое для разделения внутреннего узла.
             max_depth (int): максимальная глубина дерева решений.
+            criterion (srt): критерий построения разбиения в узлах дерева.
+            bins (int): бининг - ускоряет построение модели на больших данных.
         """
         self.min_samples = min_samples
         self.max_depth = max_depth
+        self.criterion = criterion if criterion in ("entropy", "gini") else "entropy"
+        self.bins = bins
 
-    def split_data(
-        self, dataset: np.ndarray, feature: int, threshold: float
-    ) -> List[np.ndarray]:
+    def _entropy(self, y: np.ndarray) -> float:
         """
-        Разбивает данный набор данных на два набора данных на основе заданного признака и порогового значения.
-
-        Параметры:
-            dataset (ndarray): входной набор данных.
-            feature (int): индекс признака, по которому будет произведено разделение.
-            порог (float): пороговое значение для разделения объекта.
-
-        Возвращается:
-            left_dataset (ndarray): подмножество набора данных со значениями, меньшими или равными пороговому значению.
-            right_dataset (ndarray): подмножество набора данных со значениями, превышающими пороговое значение.
+        Вычисляет энтропийный критерий разбиения по формуле:
+            entropy = sum_{i=0}^{N} p_i * log_2(p_i)
         """
-
-        left_dataset = []
-        right_dataset = []
-
-        mask = dataset[:, feature] <= threshold
-
-        left_dataset = dataset[mask]
-        right_dataset = dataset[~mask]
-
-        return left_dataset, right_dataset
-
-    def entropy(self, y: np.ndarray) -> float:
-        """
-        Вычисляет энтропию заданных значений меток.
-
-        Параметры:
-            y (ndarray): Ввод значений меток.
-
-        Возвращается:
-            энтропия: энтропия заданных значений меток.
-        """
-        entropy = 0
-
-        labels = np.unique(y)
-        for label in labels:
-            label_example = y[y == label]
-            pl = len(label_example) / len(y)
-            entropy += -pl * np.log2(pl)
-
+        entropy = 0.0
+        n = len(y)
+        for label in np.unique(y):
+            p = np.sum(y == label) / n
+            if p > 0:
+                entropy -= p * np.log2(p)
         return entropy
+    
+    def _gini(self, y: np.ndarray) -> float:
+        """
+        Вычисляет gini:
+            gini = 1 - sum_{i=0}^{N}p_i**2
+        """
+        gini = 1.0
+        n = len(y)
+        for label in np.unique(y):
+            p = np.sum(y == label) / n
+            gini -= p ** 2
+        return gini
 
-    def information_gane(
-        self, parent: np.array, left: np.array, right: np.array
+    def _impurity(self, y: np.ndarray) -> float:
+        if self.criterion == "entropy":
+            return self._entropy(y)
+        else:
+            return self._gini(y)
+
+    def _information_gain(
+        self, parent: np.ndarray, left: np.ndarray, right: np.ndarray
     ) -> float:
-        """
-        Вычисляет информацию, полученную в результате разделения родительского набора данных на два набора данных.
+        n = len(parent)
+        wl = len(left) / n
+        wr = len(right) / n
+        gain = self._impurity(parent) - (wl * self._impurity(left) + wr * self._impurity(right))
+        return gain
 
-        Параметры:
-            parent (ndarray): ввод родительского набора данных.
-            left (ndarray): подмножество родительского набора данных после разделения на объект.
-            right (ndarray): подмножество родительского набора данных после разделения на объект.
+    def _get_thresholds(self, values: np.ndarray) -> np.ndarray:
+        unique_vals = np.sort(np.unique(values))
+        if len(unique_vals) < 2:
+            return np.array([])
+        if self.bins is not None and len(unique_vals) - 1 >= self.bins:
+            hist_bins = np.histogram(values, bins=self.bins)[1]
+            thresholds = hist_bins[1:-1]
+        else:
+            thresholds = np.convolve(unique_vals, [0.5, 0.5], mode="valid")
+        return thresholds
 
-        Возвращается:
-            information_gain (с плавающей точкой): прирост информации при разделении.
-        """
-        information_gane = 0
-        parent_entropy = self.entropy(parent)
-        weight_left = len(left) / len(parent)
-        weight_right = len(right) / len(parent)
-        entropy_left, entropy_right = self.entropy(left), self.entropy(right)
-        weighted_entropy = weight_left * entropy_left + weight_right * entropy_right
-        information_gane = parent_entropy - weighted_entropy
-        return information_gane
+    def _is_leaf(self, y: np.ndarray, n_samples: int, depth: int) -> bool:
+        if len(np.unique(y)) == 1:
+            return True
+        if depth >= self.max_depth:
+            return True
+        if n_samples < self.min_samples:
+            return True
+        return False
 
-    def best_split(
-        self, dataset: np.ndarray, num_samples: int, num_features: int
-    ) -> dict:
-        """
-        Находит наилучшее разделение для данного датасета.
+    def _calculate_leaf_value(self, y: np.ndarray) -> float:
+        values, counts = np.unique(y, return_counts=True)
+        return float(values[np.argmax(counts)])
 
-        Аргументы:
-        dataset (ndarray): Набор данных для разделения.
-        num_samples (int): Количество выборок в наборе данных.
-        num_features (int): количество объектов в наборе данных.
+    def _calculate_leaf_proba(self, y: np.ndarray) -> float:
+        # Возвращает вероятность класса 1.
+        return np.mean(y == self.classes_[1]) if len(self.classes_) == 2 else np.mean(y)
 
-        Возвращается:
-        dict: Словарь с наилучшим разделением индекса признаков, порогового значения, коэффициента усиления,
-              левого и правого наборов данных.
-        """
+    def _best_split(self, X: np.ndarray, y: np.ndarray) -> dict:
         best_split = {"gain": -1, "feature": None, "threshold": None}
+        n_samples, n_features = X.shape
 
-        for feature_index in range(num_features):
-            feature_values = dataset[:, feature_index]
-            feature_values = np.sort(feature_values, kind="quicksort")
-            thresholds = np.convolve(feature_values, [0.5, 0.5], mode="valid")
-            for threshold in thresholds:
-                left_dataset, right_dataset = self.split_data(
-                    dataset, feature_index, threshold
-                )
-                if len(left_dataset) and len(right_dataset):
-                    y, left_y, right_y = (
-                        dataset[:, -1],
-                        left_dataset[:, -1],
-                        right_dataset[:, -1],
-                    )
-                    information_gain = self.information_gane(y, left_y, right_y)
-                    if information_gain > best_split["gain"]:
-                        best_split["feature"] = feature_index
-                        best_split["threshold"] = threshold
-                        best_split["left_dataset"] = left_dataset
-                        best_split["right_dataset"] = right_dataset
-                        best_split["gain"] = information_gain
+        for feature_idx in range(n_features):
+            thresholds = self._split_values.get(feature_idx, None)
+            if thresholds is None:
+                thresholds = self._get_thresholds(X[:, feature_idx])
+                self._split_values[feature_idx] = thresholds
+
+            for thresh in thresholds:
+                left_mask = X[:, feature_idx] <= thresh
+                right_mask = ~left_mask
+
+                if np.sum(left_mask) == 0 or np.sum(right_mask) == 0:
+                    continue
+
+                y_left, y_right = y[left_mask], y[right_mask]
+                gain = self._information_gain(y, y_left, y_right)
+
+                if gain > best_split["gain"]:
+                    best_split.update({
+                        "gain": gain,
+                        "feature": feature_idx,
+                        "threshold": thresh,
+                        "left_X": X[left_mask],
+                        "right_X": X[right_mask],
+                        "left_y": y_left,
+                        "right_y": y_right
+                    })
 
         return best_split
 
-    def calculate_leaf_value(self, y: Union[list, np.array]) -> int:
-        """
-        Вычисляет наиболее часто встречающееся значение в заданном списке значений y.
+    def _build_tree(self, X: np.ndarray, y: np.ndarray, depth: int = 0) -> Node:
+        n_samples = X.shape[0]
 
-        Аргументы:
-            y (список): список значений y.
+        if self._is_leaf(y, n_samples, depth):
+            proba = self._calculate_leaf_proba(y)
+            leaf_value = self._calculate_leaf_value(y)
+            return Node(value=leaf_value, gain=proba)
 
-        Возвращается:
-            Наиболее часто встречающееся значение в списке.
-        """
-        values, counts = np.unique(y, return_counts=True)
-        return values[np.argmax(counts)]
+        best_split = self._best_split(X, y)
+        if best_split["gain"] <= 0 or best_split["feature"] is None:
+            proba = self._calculate_leaf_proba(y)
+            leaf_value = self._calculate_leaf_value(y)
+            return Node(value=leaf_value, gain=proba)
 
-    def build_tree(self, dataset: np.ndarray, current_depth: int = 0) -> Node:
-        """
-        Рекурсивно строит дерево решений из заданного набора данных.
+        # Update feature importance
+        weight = n_samples / self.n_samples_
+        self.feature_importances_[best_split["feature"]] += weight * best_split["gain"]
 
-        Аргументы:
-        dataset (ndarray): Набор данных, из которого будет построено дерево.
-        current_depth (int): Текущая глубина дерева.
+        left_child = self._build_tree(
+            best_split["left_X"], best_split["left_y"], depth + 1
+        )
+        right_child = self._build_tree(
+            best_split["right_X"], best_split["right_y"], depth + 1
+        )
 
-        Возвращается:
-        Node: корневой узел построенного дерева решений.
-        """
-        X, y = dataset[:, :-1], dataset[:, -1]
-        n_samples, n_features = X.shape
-
-        if len(np.unique(y)) == 1:
-            return Node(value=y[0])
-
-        if n_samples >= self.min_samples and current_depth <= self.max_depth:
-            best_split = self.best_split(dataset, n_samples, n_features)
-            if best_split["gain"]:
-                left_node = self.build_tree(
-                    best_split["left_dataset"], current_depth + 1
-                )
-                right_node = self.build_tree(
-                    best_split["right_dataset"], current_depth + 1
-                )
-                return Node(
-                    best_split["feature"],
-                    best_split["threshold"],
-                    left_node,
-                    right_node,
-                    best_split["gain"],
-                )
-
-        leaf_value = self.calculate_leaf_value(y)
-        return Node(value=leaf_value)
+        return Node(
+            feature=best_split["feature"],
+            threshold=best_split["threshold"],
+            left=left_child,
+            right=right_child,
+            gain=best_split["gain"]
+        )
 
     def fit(self, X: np.ndarray, y: np.ndarray):
-        """
-        Строит и подгоняет дерево решений к заданным значениям X и y.
+        if not isinstance(X, np.ndarray):
+            X = np.array(X)
+        if not isinstance(y, np.ndarray):
+            y = np.array(y)
+        if y.ndim == 2 and y.shape[1] == 1:
+            y = y.ravel()
 
-        Аргументы:
-        X (ndarray): матрица признаков.
-        y (ndarray): целевые значения.
-        """
-        dataset = np.concatenate((X, y), axis=1)
-        self.root = self.build_tree(dataset)
+        self.classes_ = np.unique(y)
+        if len(self.classes_) != 2:
+            raise ValueError("Only binary classification is supported.")
+
+        self.n_samples_, self.n_features_in_ = X.shape
+        self.feature_importances_ = np.zeros(self.n_features_in_)
+        self._split_values = {}
+
+        self.root = self._build_tree(X, y)
+        self._fitted = True
         return self
 
-    def predict(self, X: np.ndarray) -> np.array:
-        """
-        Предсказывает метки классов для каждого экземпляра в матрице объектов X.
-
-        Аргументы:
-        X (ndarray): Матрица объектов, для которой нужно делать прогнозы.
-
-        Возвращается:
-            Список предсказанных меток классов.
-        """
-        predictions = []
-        for x in X:
-            prediction = self.make_prediction(x, self.root)
-            predictions.append(prediction)
-        predictions = np.array(predictions)
-        return predictions
-
-    def make_prediction(self, x: np.array, node: Node) -> float:
-        """
-        Обходит дерево решений, чтобы предсказать целевое значение для данного вектора признаков.
-
-        Аргументы:
-            x (ndarray): вектор признаков, для которого нужно предсказать целевое значение.
-            node: вычисляемый текущий узел.
-
-        Возвращается:
-            Прогнозируемое целевое значение для данного вектора признаков.
-        """
-        if node.value is not None:
-            return node.value
-        else:
-            feature = x[node.feature]
-            if feature <= node.threshold:
-                return self.make_prediction(x, node.left)
+    def _predict_row_proba(self, x: np.ndarray) -> float:
+        node = self.root
+        while node.value is None:
+            if x[node.feature] <= node.threshold:
+                node = node.left
             else:
-                return self.make_prediction(x, node.right)
+                node = node.right
+        return node.gain  # stores class probability
+
+    def predict_proba(self, X: np.ndarray) -> np.ndarray:
+        if not hasattr(self, "_fitted") or not self._fitted:
+            raise ValueError("This DecisionTreeClassifier instance is not fitted yet.")
+
+        if not isinstance(X, np.ndarray):
+            X = np.array(X)
+
+        probas = np.array([self._predict_row_proba(row) for row in X])
+        # Return shape (n_samples, 2)
+        return np.vstack((1 - probas, probas)).T
+
+    def predict(self, X: np.ndarray) -> np.ndarray:
+        probas = self.predict_proba(X)
+        return (probas[:, 1] > 0.5).astype(int)
 
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
