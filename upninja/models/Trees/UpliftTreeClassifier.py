@@ -28,7 +28,7 @@ class UpliftTreeClassifier(BaseEstimator, ClassifierMixin):
         self,
         min_samples: int = 200,
         max_depth: int = 3,
-        criterion: str = "uplift",
+        criterion: str = "linear",
         bins: Optional[int] = None,
         min_samples_treatment: int = 10,
         control_name: int = 0,
@@ -49,10 +49,25 @@ class UpliftTreeClassifier(BaseEstimator, ClassifierMixin):
         self.min_samples = min_samples
         self.max_depth = max_depth
         self.criterion = criterion
+        self.criterion_f = self._weighted_uplift_sq if self.criterion == "squared" else self._linear_uplift
         self.bins = bins
         self.min_samples_treatment = min_samples_treatment
         self.control_name = control_name
         self.treatment_name = treatment_name
+
+    @staticmethod
+    def _weighted_uplift_sq(stats):
+            uplift = stats["uplift"]
+            n_t, n_c = stats["n_t"], stats["n_c"]
+            weight = (n_t * n_c) / (n_t + n_c + 1e-8)
+            return uplift ** 2 * weight
+
+    @staticmethod
+    def _linear_uplift(stats):
+        uplift = stats["uplift"]
+        n_t, n_c = stats["n_t"], stats["n_c"]
+        weight = np.sqrt(n_t * n_c + 1e-8)
+        return uplift * weight
 
     def _compute_uplift_stats(self, y: np.ndarray, w: np.ndarray):
         """
@@ -88,14 +103,7 @@ class UpliftTreeClassifier(BaseEstimator, ClassifierMixin):
         nR = stats_right["n_t"] + stats_right["n_c"]
         N = nL + nR + 1e-8
 
-        # Балансировка uplift gain с учётом размера групп
-        def weighted_uplift_sq(stats):
-            uplift = stats["uplift"]
-            n_t, n_c = stats["n_t"], stats["n_c"]
-            weight = (n_t * n_c) / (n_t + n_c + 1e-8)
-            return uplift ** 2 * weight
-
-        gain = (nL / N) * weighted_uplift_sq(stats_left) + (nR / N) * weighted_uplift_sq(stats_right)
+        gain = (nL / N) * self.criterion_f(stats_left) + (nR / N) * self.criterion_f(stats_right)
         return gain
 
     def _get_thresholds(self, values: np.ndarray) -> np.ndarray:
