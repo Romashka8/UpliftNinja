@@ -43,9 +43,9 @@ class UpliftTreeClassifierDML(BaseEstimator, RegressorMixin):
         return {"n_t": n_t, "n_c": n_c, "uplift": p_t - p_c}
 
     def _compute_pseudo_outcome(self, X: np.ndarray, y: np.ndarray, w: np.ndarray) -> np.ndarray:
-        """Преобразует (X, y, w) → pseudo_y для обучения регрессора."""
+        """Преобразует (X, y, w) -> pseudo_y для обучения регрессора."""
 
-        # DML: обучаем propensity и строим псевдо-outcome
+        # DML: обучаем propensity и строим псевдо-исход
         w_binary = (w == self.treatment_name).astype(int)
         prop_model = LogisticRegression(max_iter=1000, solver='liblinear', random_state=self.random_state)
         prop_model.fit(X, w_binary)
