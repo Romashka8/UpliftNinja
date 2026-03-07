@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-from .Selection import findBestParams, UpliftTune
-from . import Spaces
+from ..tune.Selection import findBestParams, UpliftTune
+from ..tune import Spaces
 
-__all__ = ["Wrappers", "findBestParams", "UpliftTune"]
+__all__ = ["Wrappers", "findBestParams", "UpliftTune", "Spaces"]
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
