@@ -8,12 +8,12 @@ from joblib import Parallel, delayed
 from sklearn.linear_model import LogisticRegression
 from sklearn.ensemble import RandomForestRegressor
 
-from . import UpliftTreeClassifierDML
+from UpliftTreeClassifierDML import UpliftTreeClassifierDML
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
 
 
-class UpliftRandomForest:
+class UpliftRandomForestDML:
     def __init__(
         self,
         n_estimators: int = 10,
@@ -62,7 +62,7 @@ class UpliftRandomForest:
         X_sample = X.iloc[rows_idx][cols_idx].values
         w_sample = w.iloc[rows_idx].values
 
-        y_sample = pseudo_y[rows_idx]
+        y_sample = pseudo_y.iloc[rows_idx]
         tree = UpliftTreeClassifierDML(
             max_depth=self.max_depth,
             min_samples=self.min_samples,
