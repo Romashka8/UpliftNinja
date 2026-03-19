@@ -53,7 +53,7 @@ class UpliftRandomForestDML:
     def __str__(self):
         atr = self.__dict__
         res = "".join([i + "=" + str(atr[i]) + "," + " " for i in atr])[:-2]
-        return "UpliftRandomForest class: " + res
+        return "UpliftRandomForestDML class: " + res
 
     def _fit_single_tree(self, X, pseudo_y, w, cols_idx, rows_idx, tree_idx):
         """Fit a single tree with specified tree_criterion."""
