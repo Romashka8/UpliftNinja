@@ -6,6 +6,9 @@ import random
 from typing import Optional
 from joblib import Parallel, delayed
 
+from sklearn.linear_model import LogisticRegression
+from sklearn.ensemble import RandomForestRegressor
+
 from UpliftTreeClassifierDML import UpliftTreeClassifierDML
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
@@ -20,6 +23,7 @@ class UpliftRandomForestDML:
         max_depth: int = 3,
         min_samples: int = 200,
         bins: Optional[int] = None,
+        dml_forest: bool = False,
         random_state: int = 42,
         min_samples_treatment: int = 10,
         control_name: int = 0,
@@ -28,6 +32,7 @@ class UpliftRandomForestDML:
         verbose: int = 0,
     ):
         # Forest parameters
+        self.dml_forest = dml_forest
         self.n_estimators = n_estimators
         self.max_features = max_features if 0.0 <= max_features <= 1.0 else 0.5
         self.max_samples = max_samples if 0.0 <= max_samples <= 1.0 else 0.5
@@ -54,8 +59,26 @@ class UpliftRandomForestDML:
         res = "".join([i + "=" + str(atr[i]) + "," + " " for i in atr])[:-2]
         return "UpliftRandomForestDML class: " + res
 
+    def _preprocess_dml(self, X: pd.DataFrame, y: np.ndarray, w: np.ndarray):
+        w_binary = (w == self.treatment_name).astype(int)
+        prop_model = LogisticRegression(max_iter=1000, solver='liblinear', random_state=self.random_state)
+        prop_model.fit(X, w_binary)
+        e_hat = prop_model.predict_proba(X)[:, 1]
+        e_hat = np.clip(e_hat, 1e-6, 1 - 1e-6)
+
+        X_w = np.hstack([X.values, w.reshape(-1, 1)])
+        
+        mu_model = RandomForestRegressor(n_estimators=50, max_depth=6, random_state=self.random_state)
+
+        mu_model.fit(X_w, y)
+        mu_hat = mu_model.predict(X_w)
+
+        pseudo_y = (w_binary - e_hat) / (e_hat * (1 - e_hat)) * (y - mu_hat)
+        self._using_dml = True
+        return pseudo_y
+
     def _fit_single_tree(self, X, pseudo_y, w, cols_idx, rows_idx, tree_idx):
-        """Fit a single tree with specified tree_criterion."""
+        """Fit a single tree"""
         X_sample = X.iloc[rows_idx][cols_idx].values
         w_sample = w.iloc[rows_idx].values
 
@@ -80,6 +103,17 @@ class UpliftRandomForestDML:
         cols_sample_cnt = max(1, int(np.round(self.max_features * n_features)))
         rows_sample_cnt = max(1, int(np.round(self.max_samples * n_samples)))
 
+        # DML preprocessing
+        pseudo_y_global = None
+        if self.dml_forest:
+            if self.verbose > 0:
+                print("[UpliftRandomForest] Fitting global DML models...")
+            pseudo_y_global = self._preprocess_dml(X, y.values, w.values)
+            if self.verbose > 0:
+                print("[UpliftRandomForest] DML preprocessing done.")
+        else:
+            pseudo_y_global = y.copy()
+
         # Bootstrap samples
         bootstrap_samples = []
         for i in range(self.n_estimators):
@@ -94,7 +128,7 @@ class UpliftRandomForestDML:
 
             self.forest = Parallel(n_jobs=self.n_jobs, verbose=0)(
                 delayed(self._fit_single_tree)(
-                    X, y, w, cols_idx, rows_idx, tree_idx
+                    X, pseudo_y_global, w, cols_idx, rows_idx, tree_idx
                 )
                 for cols_idx, rows_idx, tree_idx in bootstrap_samples
             )
@@ -108,7 +142,7 @@ class UpliftRandomForestDML:
                     print(f"[UpliftRandomForest] Tree {i + 1}/{self.n_estimators}")
 
                 tree_tuple = self._fit_single_tree(
-                    X, y, w, cols_idx, rows_idx, tree_idx
+                    X, pseudo_y_global, w, cols_idx, rows_idx, tree_idx
                 )
                 self.forest.append(tree_tuple)
 
