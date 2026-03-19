@@ -5,8 +5,6 @@ import pandas as pd
 import random
 from typing import Optional
 from joblib import Parallel, delayed
-from sklearn.linear_model import LogisticRegression
-from sklearn.ensemble import RandomForestRegressor
 
 from UpliftTreeClassifierDML import UpliftTreeClassifierDML
 
@@ -16,7 +14,7 @@ from UpliftTreeClassifierDML import UpliftTreeClassifierDML
 class UpliftRandomForestDML:
     def __init__(
         self,
-        n_estimators: int = 10,
+        n_estimators: int = 10, 
         max_features: float = 0.5,
         max_samples: float = 0.5,
         max_depth: int = 3,
