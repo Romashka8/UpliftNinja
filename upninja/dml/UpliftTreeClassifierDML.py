@@ -88,9 +88,6 @@ class UpliftTreeClassifierDML(BaseEstimator, RegressorMixin):
             raise ValueError("This UpliftTreeClassifier instance is not fitted yet.")
 
         X = np.asarray(X)
-        if self._is_dml:
-            return self._tree_regressor.predict(X)
-        else:
-            return self._original_tree.predict(X)
+        return self._tree_regressor.predict(X)
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
