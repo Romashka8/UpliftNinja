@@ -48,7 +48,6 @@ class UpliftRandomForestDML:
         # Storage
         self.forest = []
         self._fitted = False
-        self._using_dml = False
 
     def __str__(self):
         atr = self.__dict__
