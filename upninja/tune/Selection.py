@@ -9,6 +9,8 @@ from typing import Any, Dict, Callable
 
 from causalml.inference.tree.uplift import UpliftTreeClassifier as UpliftTreeClassifierCM
 
+from econml.dml import CausalForestDML
+
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import StratifiedKFold
 
@@ -123,6 +125,9 @@ class UpliftTune:
                 if isinstance(model, UpliftTreeClassifierCM):
                     model.fit(X_train, treatment_train, y_train)
                     predictions = model.predict(X_val)[:, 0]
+                if isinstance(model, CausalForestDML):
+                    model.fit(Y=y_train, T=treatment_train, X=X_train)
+                    predictions = model.predict(X_val)
                 else:
                     model.fit(X_train, y_train, treatment_train)
                     predictions = model.predict(X_val)
