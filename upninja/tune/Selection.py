@@ -127,7 +127,7 @@ class UpliftTune:
                     predictions = model.predict(X_val)[:, 0]
                 if isinstance(model, CausalForestDML):
                     model.fit(Y=y_train, T=treatment_train, X=X_train)
-                    predictions = model.predict(X_val)
+                    predictions = model.effect(X_val)
                 else:
                     model.fit(X_train, y_train, treatment_train)
                     predictions = model.predict(X_val)
