@@ -8,6 +8,7 @@ from hyperopt import fmin, tpe, Trials, STATUS_OK, space_eval
 from typing import Any, Dict, Callable
 
 from causalml.inference.tree.uplift import UpliftTreeClassifier as UpliftTreeClassifierCM
+from causalml.inference.tree import UpliftRandomForestClassifier as UpliftForestCM
 
 from econml.dml import CausalForestDML
 
@@ -122,7 +123,8 @@ class UpliftTune:
                 treatment_train, treatment_val = treatment.iloc[train_idx], treatment.iloc[val_idx]
 
             try:
-                if isinstance(model, UpliftTreeClassifierCM):
+                if isinstance(model, UpliftTreeClassifierCM) or isinstance(model, UpliftForestCM):
+                    print(treatment_train)
                     model.fit(X_train, treatment_train, y_train)
                     predictions = model.predict(X_val)[:, 0]
                 if isinstance(model, CausalForestDML):
