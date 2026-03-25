@@ -7,6 +7,8 @@ from hyperopt import fmin, tpe, Trials, STATUS_OK, space_eval
 
 from typing import Any, Dict, Callable
 
+from sklift.models import TwoModels
+
 from causalml.inference.tree.uplift import UpliftTreeClassifier as UpliftTreeClassifierCM
 from causalml.inference.tree import UpliftRandomForestClassifier as UpliftForestCM
 
@@ -79,7 +81,10 @@ class UpliftTune:
             try:
                 if self.base_model_class:
                     model = self.base_model_class(**params)
-                    uplift_model = self.uplift_model_class(model)
+                    if self.uplift_model_class == TwoModels:
+                        uplift_model = self.uplift_model_class(model, model.copy(), "ddr_control")
+                    else:
+                        uplift_model = self.uplift_model_class(model)
                 else:
                     uplift_model = self.uplift_model_class(**params)
 
@@ -115,19 +120,21 @@ class UpliftTune:
         for train_idx, val_idx in skf.split(X, treatment):
             if isinstance(X, np.ndarray) and isinstance(y, np.ndarray):
                 X_train, X_val = X[train_idx], X[val_idx]
-                y_train, y_val = y[train_idx], y[val_idx]
-                treatment_train, treatment_val = treatment[train_idx], treatment[val_idx]                
+                y_train, y_val = y[train_idx], y[val_idx]             
             else:
                 X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
                 y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
+
+            if isinstance(treatment, np.ndarray):
+                treatment_train, treatment_val = treatment[train_idx], treatment[val_idx]
+            else:
                 treatment_train, treatment_val = treatment.iloc[train_idx], treatment.iloc[val_idx]
 
             try:
                 if isinstance(model, UpliftTreeClassifierCM) or isinstance(model, UpliftForestCM):
-                    print(treatment_train)
                     model.fit(X_train, treatment_train, y_train)
                     predictions = model.predict(X_val)[:, 0]
-                if isinstance(model, CausalForestDML):
+                elif isinstance(model, CausalForestDML):
                     model.fit(Y=y_train, T=treatment_train, X=X_train)
                     predictions = model.effect(X_val)
                 else:
@@ -137,7 +144,6 @@ class UpliftTune:
                 score = self._calculate_uplift_score(
                     predictions=predictions, treatment=treatment_val, target=y_val
                 )
-
                 scores.append(score)
 
             except Exception as e:
