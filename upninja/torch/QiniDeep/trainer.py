@@ -10,8 +10,8 @@ import torch
 from torch import nn
 from torch.utils.data import DataLoader
 
-from network import DeepUpliftNetwork
-from loss import FactualLoss
+from .network import DeepUpliftNetwork
+from .loss import FactualLoss
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
 
