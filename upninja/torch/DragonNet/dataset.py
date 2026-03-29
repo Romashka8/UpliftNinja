@@ -19,6 +19,7 @@ class DragonNetDataset(Dataset):
       Y: (n,)
     Optional: sample_weight (n,)
     """
+
     def __init__(
         self,
         x: Union[np.ndarray, torch.Tensor],
@@ -30,7 +31,11 @@ class DragonNetDataset(Dataset):
         self.x = torch.as_tensor(x, dtype=torch.float32)
         self.t = torch.as_tensor(t, dtype=torch.float32).view(-1)
         self.y = torch.as_tensor(y, dtype=torch.float32).view(-1)
-        self.sample_weight = None if sample_weight is None else torch.as_tensor(sample_weight, dtype=torch.float32).view(-1)
+        self.sample_weight = (
+            None
+            if sample_weight is None
+            else torch.as_tensor(sample_weight, dtype=torch.float32).view(-1)
+        )
 
         if self.x.ndim != 2:
             raise ValueError("x must have shape (n, d)")
@@ -47,5 +52,6 @@ class DragonNetDataset(Dataset):
         if self.sample_weight is not None:
             batch["sample_weight"] = self.sample_weight[idx]
         return batch
+
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
