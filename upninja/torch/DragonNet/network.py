@@ -1,3 +1,5 @@
+# ----------------------------------------------------------------------------------------------------------------------------------------
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -9,6 +11,8 @@ from torch import nn
 
 OutcomeType = Literal["binary", "continuous"]
 NormType = Literal["none", "layernorm", "batchnorm"]
+
+# ----------------------------------------------------------------------------------------------------------------------------------------
 
 
 def _get_activation(name: str) -> nn.Module:
@@ -32,6 +36,9 @@ def _make_norm(norm: NormType, dim: int) -> nn.Module:
     if norm == "batchnorm":
         return nn.BatchNorm1d(dim)
     raise ValueError(f"Unknown norm: {norm}")
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------
 
 
 def build_mlp(
@@ -62,28 +69,40 @@ def build_mlp(
     return nn.Sequential(*layers)
 
 
+# ----------------------------------------------------------------------------------------------------------------------------------------
+
+
 @dataclass(frozen=True)
 class DragonNetConfig:
     n_features: int
 
-    trunk_hidden_dims: Tuple[int, ...] = (200, 200, 200)  # у DragonNet часто широкие слои
+    trunk_hidden_dims: Tuple[int, ...] = (
+        200,
+        200,
+        200,
+    )
     head_hidden_dims: Tuple[int, ...] = (100, 100)
 
     activation: str = "relu"
     dropout: float = 0.0
     norm: NormType = "none"
 
-    outcome_type: OutcomeType = "binary"   # binary -> y-head outputs logits; continuous -> raw
+    outcome_type: OutcomeType = (
+        "binary"
+    )
 
     # Weights
-    lambda_propensity: float = 1.0         # weight for propensity loss
-    lambda_targeted: float = 1.0           # weight for targeted regularization
+    lambda_propensity: float = 1.0  # weight for propensity loss
+    lambda_targeted: float = 1.0  # weight for targeted regularization
 
     # Targeted regularization switch
     use_targeted_regularization: bool = True
 
     # numerical stability
     eps: float = 1e-6
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------
 
 
 class DragonNet(nn.Module):
@@ -99,6 +118,7 @@ class DragonNet(nn.Module):
       t_logit: (batch,) logit for P(T=1|X)
       p: (batch,) sigmoid(t_logit)
     """
+
     def __init__(self, cfg: DragonNetConfig):
         super().__init__()
         self.cfg = cfg
@@ -106,7 +126,11 @@ class DragonNet(nn.Module):
         if cfg.n_features <= 0:
             raise ValueError("n_features must be positive")
 
-        trunk_out = cfg.trunk_hidden_dims[-1] if len(cfg.trunk_hidden_dims) > 0 else cfg.n_features
+        trunk_out = (
+            cfg.trunk_hidden_dims[-1]
+            if len(cfg.trunk_hidden_dims) > 0
+            else cfg.n_features
+        )
 
         self.trunk = nn.Identity()
         if len(cfg.trunk_hidden_dims) > 0:
@@ -149,11 +173,15 @@ class DragonNet(nn.Module):
 
         # targeted regularization parameter epsilon (scalar)
         # In practice it’s often initialized at 0.
-        self.epsilon = nn.Parameter(torch.zeros(1), requires_grad=cfg.use_targeted_regularization)
+        self.epsilon = nn.Parameter(
+            torch.zeros(1), requires_grad=cfg.use_targeted_regularization
+        )
 
     def _check_x(self, x: torch.Tensor) -> None:
         if x.ndim != 2 or x.shape[1] != self.cfg.n_features:
-            raise ValueError(f"x must have shape (batch, {self.cfg.n_features}), got {tuple(x.shape)}")
+            raise ValueError(
+                f"x must have shape (batch, {self.cfg.n_features}), got {tuple(x.shape)}"
+            )
 
     def forward(self, x: torch.Tensor) -> Dict[str, torch.Tensor]:
         self._check_x(x)
@@ -242,3 +270,6 @@ class DragonNet(nn.Module):
             outs.append(p.detach().cpu().numpy())
 
         return np.concatenate(outs, axis=0).astype(np.float32)
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------
