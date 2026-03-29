@@ -1,3 +1,5 @@
+# ----------------------------------------------------------------------------------------------------------------------------------------
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +14,8 @@ from .network import DragonNetConfig, DragonNet
 OutcomeType = Literal["binary", "continuous"]
 NormType = Literal["none", "layernorm", "batchnorm"]
 
+# ----------------------------------------------------------------------------------------------------------------------------------------
+
 
 class DragonNetLoss(nn.Module):
     """
@@ -20,6 +24,7 @@ class DragonNetLoss(nn.Module):
 
     Supports optional sample_weight (e.g., IPW).
     """
+
     def __init__(self, cfg: DragonNetConfig):
         super().__init__()
         self.cfg = cfg
@@ -125,3 +130,6 @@ class DragonNetLoss(nn.Module):
             "targeted_loss": tar_l.detach(),
             "epsilon": model.epsilon.detach().clone(),
         }
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------
