@@ -1,3 +1,5 @@
+# ----------------------------------------------------------------------------------------------------------------------------------------
+
 from __future__ import annotations
 
 from dataclasses import dataclass
@@ -12,6 +14,8 @@ from .loss import DragonNetLoss
 OutcomeType = Literal["binary", "continuous"]
 NormType = Literal["none", "layernorm", "batchnorm"]
 
+# ----------------------------------------------------------------------------------------------------------------------------------------
+
 
 @dataclass
 class TrainConfig:
@@ -24,6 +28,9 @@ class TrainConfig:
     verbose: bool = True
 
 
+# ----------------------------------------------------------------------------------------------------------------------------------------
+
+
 def train_dragonnet(
     model: DragonNet,
     train_loader: DataLoader,
@@ -34,13 +41,17 @@ def train_dragonnet(
     if cfg is None:
         cfg = TrainConfig()
 
-    device = torch.device(cfg.device) if cfg.device else torch.device(
-        "cuda" if torch.cuda.is_available() else "cpu"
+    device = (
+        torch.device(cfg.device)
+        if cfg.device
+        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
     )
     model.to(device)
 
     loss_fn = DragonNetLoss(model.cfg)
-    opt = torch.optim.AdamW(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    opt = torch.optim.AdamW(
+        model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay
+    )
     scaler = torch.cuda.amp.GradScaler(enabled=(cfg.use_amp and device.type == "cuda"))
 
     history: Dict[str, List[float]] = {"train_loss": [], "valid_loss": []}
@@ -69,7 +80,9 @@ def train_dragonnet(
                     scaler.scale(loss).backward()
                     if cfg.grad_clip_norm is not None:
                         scaler.unscale_(opt)
-                        torch.nn.utils.clip_grad_norm_(model.parameters(), cfg.grad_clip_norm)
+                        torch.nn.utils.clip_grad_norm_(
+                            model.parameters(), cfg.grad_clip_norm
+                        )
                     scaler.step(opt)
                     scaler.update()
 
@@ -87,9 +100,12 @@ def train_dragonnet(
             history["valid_loss"].append(va)
 
         if cfg.verbose:
-            msg = f"Epoch {epoch+1:03d}/{cfg.max_epochs} | train_loss={tr:.6f}"
+            msg = f"Epoch {epoch + 1:03d}/{cfg.max_epochs} | train_loss={tr:.6f}"
             if valid_loader is not None:
                 msg += f" | valid_loss={history['valid_loss'][-1]:.6f}"
             print(msg)
 
     return history
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------
