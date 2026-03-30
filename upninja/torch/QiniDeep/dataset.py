@@ -13,6 +13,7 @@ class UpliftDataset(Dataset):
     """
     Minimal dataset wrapper for uplift training.
     """
+
     def __init__(
         self,
         x: Union[np.ndarray, torch.Tensor],
@@ -24,7 +25,11 @@ class UpliftDataset(Dataset):
         self.x = torch.as_tensor(x, dtype=torch.float32)
         self.w = torch.as_tensor(w, dtype=torch.long)
         self.y = torch.as_tensor(y, dtype=torch.float32)
-        self.sample_weight = None if sample_weight is None else torch.as_tensor(sample_weight, dtype=torch.float32)
+        self.sample_weight = (
+            None
+            if sample_weight is None
+            else torch.as_tensor(sample_weight, dtype=torch.float32)
+        )
 
         if self.x.ndim != 2:
             raise ValueError("x must have shape (n, n_features)")
@@ -43,3 +48,6 @@ class UpliftDataset(Dataset):
         if self.sample_weight is not None:
             item["sample_weight"] = self.sample_weight[idx]
         return item
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
