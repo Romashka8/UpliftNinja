@@ -73,6 +73,9 @@ def build_mlp(
     return nn.Sequential(*layers)
 
 
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
+
+
 @dataclass(frozen=True)
 class DeepUpliftNetConfig:
     """
@@ -81,6 +84,7 @@ class DeepUpliftNetConfig:
     Control arm is always index 0.
     Treatment arms are indices 1..n_treatments.
     """
+
     n_features: int
     n_treatments: int = 1
 
@@ -94,7 +98,9 @@ class DeepUpliftNetConfig:
     dropout: float = 0.0
     norm: NormType = "none"
 
-    outcome_type: OutcomeType = "binary"  # "binary" -> heads output logits; "continuous" -> raw values
+    outcome_type: OutcomeType = (
+        "binary"  # "binary" -> heads output logits; "continuous" -> raw values
+    )
 
     # "direct": predict Y_hat(w|x) for each arm directly (paper’s preferred implementation)
     # "residual": predict baseline Y0 and deltas per treatment: Y_hat(k)=Y0+delta_k
@@ -102,7 +108,12 @@ class DeepUpliftNetConfig:
 
     # Optional ablation: Dragonnet-style propensity head
     use_propensity_head: bool = False
-    propensity_loss_weight: float = 0.0  # if >0 and use_propensity_head=True, add CE loss to training
+    propensity_loss_weight: float = (
+        0.0  # if >0 and use_propensity_head=True, add CE loss to training
+    )
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 class DeepUpliftNetwork(nn.Module):
@@ -113,6 +124,7 @@ class DeepUpliftNetwork(nn.Module):
       - "y_hat": (batch, n_arms)  [logits for binary outcome, raw for continuous]
       - optionally "t_logits": (batch, n_arms) if propensity head is enabled
     """
+
     def __init__(self, cfg: DeepUpliftNetConfig):
         super().__init__()
         self.cfg = cfg
@@ -136,17 +148,19 @@ class DeepUpliftNetwork(nn.Module):
         # --- outcome heads ---
         if cfg.parameterization == "direct":
             # Predict potential outcome for each arm directly.
-            self.heads = nn.ModuleList([
-                build_mlp(
-                    in_dim=trunk_out_dim,
-                    hidden_dims=cfg.head_hidden_dims,
-                    out_dim=1,
-                    activation=cfg.activation,
-                    dropout=cfg.dropout,
-                    norm=cfg.norm,
-                )
-                for _ in range(self.n_arms)
-            ])
+            self.heads = nn.ModuleList(
+                [
+                    build_mlp(
+                        in_dim=trunk_out_dim,
+                        hidden_dims=cfg.head_hidden_dims,
+                        out_dim=1,
+                        activation=cfg.activation,
+                        dropout=cfg.dropout,
+                        norm=cfg.norm,
+                    )
+                    for _ in range(self.n_arms)
+                ]
+            )
             self.y0_head = None
             self.delta_heads = None
 
@@ -160,17 +174,19 @@ class DeepUpliftNetwork(nn.Module):
                 dropout=cfg.dropout,
                 norm=cfg.norm,
             )
-            self.delta_heads = nn.ModuleList([
-                build_mlp(
-                    in_dim=trunk_out_dim,
-                    hidden_dims=cfg.head_hidden_dims,
-                    out_dim=1,
-                    activation=cfg.activation,
-                    dropout=cfg.dropout,
-                    norm=cfg.norm,
-                )
-                for _ in range(cfg.n_treatments)
-            ])
+            self.delta_heads = nn.ModuleList(
+                [
+                    build_mlp(
+                        in_dim=trunk_out_dim,
+                        hidden_dims=cfg.head_hidden_dims,
+                        out_dim=1,
+                        activation=cfg.activation,
+                        dropout=cfg.dropout,
+                        norm=cfg.norm,
+                    )
+                    for _ in range(cfg.n_treatments)
+                ]
+            )
             self.heads = None
         else:
             raise ValueError(f"Unknown parameterization: {cfg.parameterization}")
@@ -200,7 +216,9 @@ class DeepUpliftNetwork(nn.Module):
             assert self.y0_head is not None and self.delta_heads is not None
             y0 = self.y0_head(z)  # (batch, 1)
             if len(self.delta_heads) > 0:
-                deltas = torch.cat([d(z) for d in self.delta_heads], dim=1)  # (batch, n_treatments)
+                deltas = torch.cat(
+                    [d(z) for d in self.delta_heads], dim=1
+                )  # (batch, n_treatments)
                 y_hat = torch.cat([y0, y0 + deltas], dim=1)
             else:
                 y_hat = y0
@@ -289,3 +307,6 @@ class DeepUpliftNetwork(nn.Module):
         arms = best_treat.astype(np.int64)
         arms[max_uplift <= 0] = 0
         return arms
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
