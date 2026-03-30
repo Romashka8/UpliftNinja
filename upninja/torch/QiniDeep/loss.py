@@ -12,6 +12,7 @@ from torch import nn
 
 OutcomeType = Literal["binary", "continuous"]
 
+
 class FactualLoss(nn.Module):
     """
     Masked (factual) loss from QiniDeep/DUN:
@@ -20,6 +21,7 @@ class FactualLoss(nn.Module):
     - binary: BCEWithLogits on selected logit
     - continuous: MSE on selected value
     """
+
     def __init__(self, outcome_type: OutcomeType = "binary"):
         super().__init__()
         self.outcome_type = outcome_type
@@ -55,7 +57,9 @@ class FactualLoss(nn.Module):
             weight_i = 1 / propensity_i
         """
         if y_hat.ndim != 2:
-            raise ValueError(f"Expected y_hat (batch, n_arms), got {tuple(y_hat.shape)}")
+            raise ValueError(
+                f"Expected y_hat (batch, n_arms), got {tuple(y_hat.shape)}"
+            )
         w = w.long().view(-1)
         y = y.float().view(-1)
 
@@ -69,7 +73,9 @@ class FactualLoss(nn.Module):
             elif propensity.ndim == 1:
                 p = propensity.view(-1)
             else:
-                raise ValueError("propensity must have shape (batch,) or (batch, n_arms)")
+                raise ValueError(
+                    "propensity must have shape (batch,) or (batch, n_arms)"
+                )
             sample_weight = 1.0 / (p.clamp_min(eps))
 
         if sample_weight is not None:
@@ -80,5 +86,6 @@ class FactualLoss(nn.Module):
             return per_sample.mean()
 
         return per_sample.mean()
+
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
