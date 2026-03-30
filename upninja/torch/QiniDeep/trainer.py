@@ -15,6 +15,7 @@ from .loss import FactualLoss
 
 # ----------------------------------------------------------------------------------------------------------------------------------------
 
+
 @dataclass
 class TrainConfig:
     lr: float = 1e-2
@@ -23,6 +24,9 @@ class TrainConfig:
     grad_clip_norm: Optional[float] = None
     device: Optional[str] = None  # "cuda" / "cpu"
     verbose: bool = True
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
 def train_deep_uplift_network(
@@ -44,10 +48,16 @@ def train_deep_uplift_network(
     if cfg is None:
         cfg = TrainConfig()
 
-    device = torch.device(cfg.device) if cfg.device else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = (
+        torch.device(cfg.device)
+        if cfg.device
+        else torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    )
     model.to(device)
 
-    optimizer = torch.optim.Adam(model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay)
+    optimizer = torch.optim.Adam(
+        model.parameters(), lr=cfg.lr, weight_decay=cfg.weight_decay
+    )
     factual_loss = FactualLoss(model.cfg.outcome_type)
     propensity_loss = nn.CrossEntropyLoss()
 
@@ -69,8 +79,13 @@ def train_deep_uplift_network(
             out = model(x)
             loss = factual_loss(out["y_hat"], w, y, sample_weight=sw)
 
-            if model.propensity_head is not None and model.cfg.propensity_loss_weight > 0:
-                loss = loss + model.cfg.propensity_loss_weight * propensity_loss(out["t_logits"], w)
+            if (
+                model.propensity_head is not None
+                and model.cfg.propensity_loss_weight > 0
+            ):
+                loss = loss + model.cfg.propensity_loss_weight * propensity_loss(
+                    out["t_logits"], w
+                )
 
             optimizer.zero_grad(set_to_none=True)
             loss.backward()
@@ -99,17 +114,27 @@ def train_deep_uplift_network(
 
                     out = model(x)
                     v_loss = factual_loss(out["y_hat"], w, y, sample_weight=sw)
-                    if model.propensity_head is not None and model.cfg.propensity_loss_weight > 0:
-                        v_loss = v_loss + model.cfg.propensity_loss_weight * propensity_loss(out["t_logits"], w)
+                    if (
+                        model.propensity_head is not None
+                        and model.cfg.propensity_loss_weight > 0
+                    ):
+                        v_loss = (
+                            v_loss
+                            + model.cfg.propensity_loss_weight
+                            * propensity_loss(out["t_logits"], w)
+                        )
 
                     v_total += float(v_loss.detach().cpu().item())
                     v_batches += 1
             history["valid_loss"].append(v_total / max(1, v_batches))
 
         if cfg.verbose:
-            msg = f"Epoch {epoch+1:03d}/{cfg.max_epochs} | train_loss={train_l:.6f}"
+            msg = f"Epoch {epoch + 1:03d}/{cfg.max_epochs} | train_loss={train_l:.6f}"
             if valid_loader is not None:
                 msg += f" | valid_loss={history['valid_loss'][-1]:.6f}"
             print(msg)
 
     return history
+
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
