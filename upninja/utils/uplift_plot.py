@@ -1,7 +1,6 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 
-import pandas as pd
 import numpy as np
 from matplotlib import pyplot as plt
 from sklift.metrics import uplift_by_percentile
@@ -100,10 +99,6 @@ def plot_uplift_by_percentile(
     bins=10,
     string_percentiles=True,
 ):
-    strategy_methods = ["overall", "by_group"]
-    kind_methods = ["line", "bar"]
-
-    n_samples = len(y_true)
 
     df = uplift_by_percentile(
         y_true,
