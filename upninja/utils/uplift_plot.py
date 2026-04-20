@@ -1,6 +1,11 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
+from __future__ import annotations
 
+from typing import Any
+from numpy.typing import ArrayLike, NDArray
+from matplotlib.axes import Axes
+from matplotlib.figure import Figure
 import numpy as np
 from matplotlib import pyplot as plt
 from sklift.metrics import uplift_by_percentile
@@ -20,16 +25,16 @@ from sklift.metrics.metrics import (
 class UpliftCurveDisplay:
     def __init__(
         self,
-        x_actual,
-        y_actual,
-        x_baseline=None,
-        y_baseline=None,
-        x_perfect=None,
-        y_perfect=None,
-        random=None,
-        perfect=None,
-        estimator_name=None,
-    ):
+        x_actual: NDArray,
+        y_actual: NDArray,
+        x_baseline: NDArray | None = None,
+        y_baseline: NDArray | None = None,
+        x_perfect: NDArray | None = None,
+        y_perfect: NDArray | None = None,
+        random: bool = False,
+        perfect: bool = False,
+        estimator_name: str | None = None,
+    ) -> None:
         self.x_actual = x_actual
         self.y_actual = y_actual
         self.x_baseline = x_baseline
@@ -40,7 +45,14 @@ class UpliftCurveDisplay:
         self.perfect = perfect
         self.estimator_name = estimator_name
 
-    def plot(self, auc_score, ax=None, name=None, title=None, **kwargs):
+    def plot(
+        self,
+        auc_score: float | None,
+        ax: Axes | None = None,
+        name: str | None = None,
+        title: str | None = None,
+        **kwargs: Any,
+    ) -> "UpliftCurveDisplay":
         name = self.estimator_name if name is None else name
 
         line_kwargs = {}
@@ -91,15 +103,14 @@ class UpliftCurveDisplay:
 
 
 def plot_uplift_by_percentile(
-    y_true,
-    uplift,
-    treatment,
-    strategy="overall",
-    kind="line",
-    bins=10,
-    string_percentiles=True,
-):
-
+    y_true: ArrayLike,
+    uplift: ArrayLike,
+    treatment: ArrayLike,
+    strategy: str = "overall",
+    kind: str = "line",
+    bins: int = 10,
+    string_percentiles: bool = True,
+) -> Axes | NDArray:
     df = uplift_by_percentile(
         y_true,
         uplift,
@@ -238,8 +249,15 @@ def plot_uplift_by_percentile(
 
 
 def plot_uplift_curve(
-    y_true, uplift, treatment, random=True, perfect=True, ax=None, name=None, **kwargs
-):
+    y_true: ArrayLike,
+    uplift: ArrayLike,
+    treatment: ArrayLike,
+    random: bool = True,
+    perfect: bool = True,
+    ax: Axes | None = None,
+    name: str | None = None,
+    **kwargs: Any,
+) -> UpliftCurveDisplay:
     y_true, uplift, treatment = np.array(y_true), np.array(uplift), np.array(treatment)
     x_actual, y_actual = uplift_curve(y_true, uplift, treatment)
 
@@ -274,16 +292,16 @@ def plot_uplift_curve(
 
 
 def plot_qini_curve(
-    y_true,
-    uplift,
-    treatment,
-    random=True,
-    perfect=True,
-    negative_effect=True,
-    ax=None,
-    name=None,
-    **kwargs,
-):
+    y_true: ArrayLike,
+    uplift: ArrayLike,
+    treatment: ArrayLike,
+    random: bool = True,
+    perfect: bool = True,
+    negative_effect: bool = True,
+    ax: Axes | None = None,
+    name: str | None = None,
+    **kwargs: Any,
+) -> UpliftCurveDisplay:
     y_true, uplift, treatment = np.array(y_true), np.array(uplift), np.array(treatment)
     x_actual, y_actual = qini_curve(y_true, uplift, treatment)
 
