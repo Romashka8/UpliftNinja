@@ -23,6 +23,12 @@ from sklift.metrics.metrics import (
 
 
 class UpliftCurveDisplay:
+    """Display object for uplift and qini curves.
+
+    Stores curve coordinates and provides a ``plot`` method similar to
+    scikit-learn display objects.
+    """
+
     def __init__(
         self,
         x_actual: NDArray,
@@ -53,6 +59,26 @@ class UpliftCurveDisplay:
         title: str | None = None,
         **kwargs: Any,
     ) -> "UpliftCurveDisplay":
+        """Plot the stored curve on a matplotlib axis.
+
+        Parameters
+        ----------
+        auc_score : float | None
+            Curve AUC value shown in the legend label.
+        ax : Axes | None, default=None
+            Existing matplotlib axis. If None, a new figure and axis are created.
+        name : str | None, default=None
+            Display name for the curve.
+        title : str | None, default=None
+            Metric name used in the legend label.
+        **kwargs : Any
+            Additional keyword arguments passed to ``ax.plot``.
+
+        Returns
+        -------
+        UpliftCurveDisplay
+            The current display instance.
+        """
         name = self.estimator_name if name is None else name
 
         line_kwargs = {}
@@ -111,6 +137,31 @@ def plot_uplift_by_percentile(
     bins: int = 10,
     string_percentiles: bool = True,
 ) -> Axes | NDArray:
+    """Plot treatment rate, control rate, and uplift by percentile.
+
+    Parameters
+    ----------
+    y_true : ArrayLike
+        Binary outcome values.
+    uplift : ArrayLike
+        Predicted uplift scores.
+    treatment : ArrayLike
+        Treatment group indicator.
+    strategy : str, default="overall"
+        Strategy passed to ``sklift.metrics.uplift_by_percentile``.
+    kind : str, default="line"
+        Plot type: ``"line"`` or ``"bar"``.
+    bins : int, default=10
+        Number of percentile bins.
+    string_percentiles : bool, default=True
+        Whether to show percentile intervals as string labels on the x-axis.
+
+    Returns
+    -------
+    Axes | NDArray
+        Matplotlib axes object for ``kind="line"`` or axes array for
+        ``kind="bar"``.
+    """
     df = uplift_by_percentile(
         y_true,
         uplift,
@@ -258,6 +309,32 @@ def plot_uplift_curve(
     name: str | None = None,
     **kwargs: Any,
 ) -> UpliftCurveDisplay:
+    """Compute and plot the uplift curve.
+
+    Parameters
+    ----------
+    y_true : ArrayLike
+        Binary outcome values.
+    uplift : ArrayLike
+        Predicted uplift scores.
+    treatment : ArrayLike
+        Treatment group indicator.
+    random : bool, default=True
+        Whether to plot the random baseline.
+    perfect : bool, default=True
+        Whether to plot the perfect uplift curve.
+    ax : Axes | None, default=None
+        Existing matplotlib axis. If None, a new one is created.
+    name : str | None, default=None
+        Curve label shown in the legend.
+    **kwargs : Any
+        Additional keyword arguments passed to the main curve plot.
+
+    Returns
+    -------
+    UpliftCurveDisplay
+        Display object containing the computed curve.
+    """
     y_true, uplift, treatment = np.array(y_true), np.array(uplift), np.array(treatment)
     x_actual, y_actual = uplift_curve(y_true, uplift, treatment)
 
@@ -302,6 +379,34 @@ def plot_qini_curve(
     name: str | None = None,
     **kwargs: Any,
 ) -> UpliftCurveDisplay:
+    """Compute and plot the qini curve.
+
+    Parameters
+    ----------
+    y_true : ArrayLike
+        Binary outcome values.
+    uplift : ArrayLike
+        Predicted uplift scores.
+    treatment : ArrayLike
+        Treatment group indicator.
+    random : bool, default=True
+        Whether to plot the random baseline.
+    perfect : bool, default=True
+        Whether to plot the perfect qini curve.
+    negative_effect : bool, default=True
+        Whether negative treatment effects are allowed in the perfect curve.
+    ax : Axes | None, default=None
+        Existing matplotlib axis. If None, a new one is created.
+    name : str | None, default=None
+        Curve label shown in the legend.
+    **kwargs : Any
+        Additional keyword arguments passed to the main curve plot.
+
+    Returns
+    -------
+    UpliftCurveDisplay
+        Display object containing the computed curve.
+    """
     y_true, uplift, treatment = np.array(y_true), np.array(uplift), np.array(treatment)
     x_actual, y_actual = qini_curve(y_true, uplift, treatment)
 
