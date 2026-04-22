@@ -1,6 +1,8 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-import numpy as np
+"""Default parameters and Hyperopt search spaces for common base learners."""
+
+# ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
 from hyperopt import hp
 
@@ -13,7 +15,7 @@ dt_base_params = {
     "min_samples_split": 0.05,
     "min_samples_leaf": 0.05,
     "criterion": "gini",
-    "n_jobs": -1
+    "n_jobs": -1,
 }
 
 dt_hp_space = {
@@ -21,7 +23,7 @@ dt_hp_space = {
     "min_samples_split": hp.uniform("min_samples_split", 0.01, 0.2),
     "min_samples_leaf": hp.uniform("min_samples_leaf", 0.01, 0.2),
     "criterion": hp.choice("criterion", ["gini", "entropy"]),
-    "n_jobs": -1
+    "n_jobs": -1,
 }
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -33,7 +35,7 @@ rf_base_params = {
     "min_samples_split": 0.05,
     "min_samples_leaf": 0.05,
     "criterion": "gini",
-    "n_jobs": -1
+    "n_jobs": -1,
 }
 
 rf_hp_space = {
@@ -42,7 +44,7 @@ rf_hp_space = {
     "min_samples_split": hp.uniform("min_samples_split", 0.01, 0.2),
     "min_samples_leaf": hp.uniform("min_samples_leaf", 0.01, 0.2),
     "criterion": hp.choice("criterion", ["gini", "entropy"]),
-    "n_jobs": -1
+    "n_jobs": -1,
 }
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
@@ -54,7 +56,7 @@ cb_base_params = {
     "learning_rate": 0.1,
     "l2_leaf_reg": 3,
     "verbose": False,
-    "thread_count": -1
+    "thread_count": -1,
 }
 
 cb_hp_space = {
@@ -63,7 +65,7 @@ cb_hp_space = {
     "learning_rate": hp.uniform("learning_rate", 0.01, 0.2),
     "l2_leaf_reg": hp.uniform("l2_leaf_reg", 1, 10),
     "verbose": False,
-    "thread_count": -1
+    "thread_count": -1,
 }
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
