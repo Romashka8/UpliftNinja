@@ -3,18 +3,23 @@
 import numpy as np
 import pandas as pd
 
+import matplotlib.pyplot as plt
+
 from hyperopt import fmin, tpe, Trials, STATUS_OK, space_eval
 
+from __future__ import annotations
 from typing import Any, Dict, Callable
 
 from sklift.models import TwoModels
 
-from causalml.inference.tree.uplift import UpliftTreeClassifier as UpliftTreeClassifierCM
+from causalml.inference.tree.uplift import (
+    UpliftTreeClassifier as UpliftTreeClassifierCM,
+)
 from causalml.inference.tree import UpliftRandomForestClassifier as UpliftForestCM
 
 from econml.dml import CausalForestDML
 
-from sklearn.base import BaseEstimator
+from sklearn.base import BaseEstimator, clone
 from sklearn.model_selection import StratifiedKFold
 
 
@@ -22,19 +27,25 @@ from sklearn.model_selection import StratifiedKFold
 
 
 class UpliftTune:
+    """Hyperparameter tuner for uplift models based on Hyperopt.
+
+    The tuner supports several uplift-model APIs and evaluates parameter
+    configurations using cross-validated uplift-at-k score.
+    """
+
     def __init__(
         self,
-        uplift_model_class: Any,
-        data: np.ndarray,
-        target: np.ndarray,
-        treatment: np.ndarray,
-        space: dict,
-        base_model_class: Any = None,
+        uplift_model_class: type[Any],
+        data: Any,
+        target: Any,
+        treatment: Any,
+        space: dict[str, Any],
+        base_model_class: type[Any] | None = None,
         rnd_seed: int = 42,
         max_evals: int = 50,
         cv: int = 3,
         verbose: bool = False,
-    ):
+    ) -> None:
         self.base_model_class = base_model_class
         self.uplift_model_class = uplift_model_class
         self.data = data
@@ -50,7 +61,14 @@ class UpliftTune:
         self.best_params = None
         self.best_score = None
 
-    def tune(self) -> Dict:
+    def tune(self) -> dict[str, Any]:
+        """Run hyperparameter optimization.
+
+        Returns
+        -------
+        dict[str, Any]
+            Dictionary with best parameters, best score, and Hyperopt trials.
+        """
         objective = self._create_objective()
 
         best = fmin(
@@ -76,13 +94,17 @@ class UpliftTune:
             "trials": self.trials,
         }
 
-    def _create_objective(self) -> Callable:
+    def _create_objective(self) -> Callable[[dict[str, Any]], dict[str, Any]]:
         def objective(params: Dict) -> Dict:
             try:
                 if self.base_model_class:
                     model = self.base_model_class(**params)
                     if self.uplift_model_class == TwoModels:
-                        uplift_model = self.uplift_model_class(model, model.copy(), "ddr_control")
+                        uplift_model = self.uplift_model_class(
+                            clone(model),
+                            clone(model),
+                            "ddr_control",
+                        )
                     else:
                         uplift_model = self.uplift_model_class(model)
                 else:
@@ -101,18 +123,19 @@ class UpliftTune:
             except Exception as e:
                 if self.verbose:
                     print(f"Error with params {params}: {e}")
-                return {"loss": 0.0, "status": STATUS_OK, "params": params}
+                return {"loss": 1e9, "status": STATUS_OK, "params": params}
 
         return objective
 
     def _cross_val_score(
         self,
-        model: BaseEstimator,
-        X: np.ndarray,
-        y: np.ndarray,
-        treatment: np.ndarray,
+        model: Any,
+        X: Any,
+        y: Any,
+        treatment: Any,
         cv: int = 3,
     ) -> float:
+        """Evaluate a model with cross-validation using uplift score."""
         scores = []
 
         skf = StratifiedKFold(n_splits=cv, shuffle=True, random_state=self.rnd_seed)
@@ -120,18 +143,26 @@ class UpliftTune:
         for train_idx, val_idx in skf.split(X, treatment):
             if isinstance(X, np.ndarray) and isinstance(y, np.ndarray):
                 X_train, X_val = X[train_idx], X[val_idx]
-                y_train, y_val = y[train_idx], y[val_idx]             
+                y_train, y_val = y[train_idx], y[val_idx]
             else:
                 X_train, X_val = X.iloc[train_idx], X.iloc[val_idx]
                 y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
 
-            if isinstance(treatment, np.ndarray):
-                treatment_train, treatment_val = treatment[train_idx], treatment[val_idx]
+            treatment = pd.Series(treatment)
+            target = pd.Series(target)
+
+            if treatment.dtype == object:
+                treatment = treatment.map({"treatment": 1, "control": 0})
             else:
-                treatment_train, treatment_val = treatment.iloc[train_idx], treatment.iloc[val_idx]
+                treatment_train, treatment_val = (
+                    treatment.iloc[train_idx],
+                    treatment.iloc[val_idx],
+                )
 
             try:
-                if isinstance(model, UpliftTreeClassifierCM) or isinstance(model, UpliftForestCM):
+                if isinstance(model, UpliftTreeClassifierCM) or isinstance(
+                    model, UpliftForestCM
+                ):
                     model.fit(X_train, treatment_train, y_train)
                     predictions = model.predict(X_val)[:, 0]
                 elif isinstance(model, CausalForestDML):
@@ -156,24 +187,27 @@ class UpliftTune:
     def _calculate_uplift_score(
         self,
         predictions: np.ndarray,
-        treatment: np.ndarray,
-        target: np.ndarray,
-        rate: float = 0.3
+        treatment: Any,
+        target: Any,
+        rate: float = 0.3,
     ) -> float:
-
+        """Compute uplift as the conversion-rate difference in the top-ranked segment."""
         return self._uplift_at_k_score(predictions, treatment, target, rate)
 
     def _uplift_at_k_score(
         self,
         predictions: np.ndarray,
-        treatment: np.ndarray,
-        target: np.ndarray,
+        treatment: Any,
+        target: Any,
         rate: float = 0.3,
     ) -> float:
+        if not 0 < rate <= 1:
+            raise ValueError("rate must be in the interval (0, 1].")
+
         order = np.argsort(-predictions)
 
         n_total = len(predictions)
-        n_top = int(n_total * rate)
+        n_top = max(1, int(n_total * rate))
 
         top_indices = order[:n_top]
 
@@ -185,7 +219,9 @@ class UpliftTune:
         control_mask = treatment.iloc[top_indices] == 0
 
         treatment_conv = (
-            target.iloc[top_indices][treatment_mask].mean() if treatment_mask.any() else 0
+            target.iloc[top_indices][treatment_mask].mean()
+            if treatment_mask.any()
+            else 0
         )
         control_conv = (
             target.iloc[top_indices][control_mask].mean() if control_mask.any() else 0
@@ -195,8 +231,12 @@ class UpliftTune:
 
         return uplift
 
-    def plot_optimization_history(self):
-        import matplotlib.pyplot as plt
+    def plot_optimization_history(self) -> None:
+        """Plot objective values across Hyperopt iterations."""
+        if not self.trials.trials:
+            raise ValueError(
+                "No trials found. Run tune() before plotting optimization history."
+            )
 
         losses = [trial["result"]["loss"] for trial in self.trials.trials]
         iterations = range(1, len(losses) + 1)
