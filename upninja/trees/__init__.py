@@ -1,8 +1,7 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-from . import DecisionTreeClassifier
-from . import UpliftTreeClassifier
+from .uplift_tree_classifier import UpliftTreeClassifier
 
-__all__ = ["DecisionTreeClassifier", "UpliftTreeClassifier"]
+__all__ = ["UpliftTreeClassifier"]
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
