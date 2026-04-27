@@ -1,6 +1,7 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-from . import UpliftTreeClassifierDML, UpliftRandomForestDML
+from .uplift_tree_dml import UpliftTreeClassifierDML
+from .uplift_forest_dml import UpliftRandomForestDML
 
 __all__ = ["UpliftTreeClassifierDML", "UpliftRandomForestDML"]
 
