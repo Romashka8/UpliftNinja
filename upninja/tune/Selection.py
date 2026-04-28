@@ -1,4 +1,5 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
+from __future__ import annotations
 
 import numpy as np
 import pandas as pd
@@ -7,7 +8,6 @@ import matplotlib.pyplot as plt
 
 from hyperopt import fmin, tpe, Trials, STATUS_OK, space_eval
 
-from __future__ import annotations
 from typing import Any, Dict, Callable
 
 from sklift.models import TwoModels
@@ -149,7 +149,6 @@ class UpliftTune:
                 y_train, y_val = y.iloc[train_idx], y.iloc[val_idx]
 
             treatment = pd.Series(treatment)
-            target = pd.Series(target)
 
             if treatment.dtype == object:
                 treatment = treatment.map({"treatment": 1, "control": 0})
