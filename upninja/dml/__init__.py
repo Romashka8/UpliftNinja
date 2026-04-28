@@ -1,8 +1,8 @@
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
 
-from .uplift_tree_dml import UpliftTreeClassifierDML
+from .uplift_tree_dml import UpliftTreeRegressorDML
 from .uplift_forest_dml import UpliftRandomForestDML
 
-__all__ = ["UpliftTreeClassifierDML", "UpliftRandomForestDML"]
+__all__ = ["UpliftTreeRegressorDML", "UpliftRandomForestDML"]
 
 # ----------------------------------------------------------------------------------------------------------------------------------------------------------
