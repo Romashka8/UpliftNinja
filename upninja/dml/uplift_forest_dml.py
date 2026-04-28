@@ -101,8 +101,6 @@ class UpliftRandomForestDML:
         tree = UpliftTreeRegressorDML(
             max_depth=self.max_depth,
             min_samples=self.min_samples,
-            bins=self.bins,
-            min_samples_treatment=self.min_samples_treatment,
             control_name=self.control_name,
             treatment_name=self.treatment_name,
         )
@@ -123,7 +121,7 @@ class UpliftRandomForestDML:
         rows_sample_cnt = max(1, int(np.round(self.max_samples * n_samples)))
 
         # DML preprocessing
-        pseudo_y_global = y.copy()
+        pseudo_y_global = self._preprocess_dml(X, y.values, w.values)
 
         # Bootstrap samples
         bootstrap_samples = []
