@@ -6,7 +6,7 @@
 
 ## Version
 
-**Current version:** `X.Y.Z`
+**Current version:** `0.0.1`
 *(replace with actual version)*
 
 ---
